@@ -1,0 +1,26 @@
+name: Update Tier Dashboard
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - run: python generate_dashboard.py
+        env:
+          CT_USERNAME: ${{ secrets.CT_USERNAME }}
+          CT_PASSWORD: ${{ secrets.CT_PASSWORD }}
+      - run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add index.html
+          git commit -m "Update tier dashboard" || exit 0
+          git push
