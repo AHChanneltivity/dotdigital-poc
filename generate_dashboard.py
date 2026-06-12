@@ -55,7 +55,6 @@ def main():
             "name": field_val(org, "Name") or "Unknown",
             "partnerType": PARTNER_TYPE_MAP.get(field_val(org, "PartnerType") or "", "Unknown")
         }
-    print(f"Total orgs loaded: {len(org_map)}")
 
     partners = {}
     for deal in deals:
@@ -77,7 +76,6 @@ def main():
         partners[org_id]["totalACV"] += amount
 
     partner_list = list(partners.values())
-    print(f"Partners with {current_year} deals: {len(partner_list)}")
 
     snapshot = datetime.now().strftime("%B %Y")
     total = len(partner_list)
@@ -86,9 +84,9 @@ def main():
     platinum = sum(1 for p in partner_list if p["partnerType"] == "Platinum")
 
     tier_colors = {
-        "Silver": ("background:#D3D1C7;color:#444441",),
-        "Gold": ("background:#FAC775;color:#633806",),
-        "Platinum": ("background:#CECBF6;color:#3C3489",)
+        "Silver": "background:#D3D1C7;color:#444441",
+        "Gold": "background:#FAC775;color:#633806",
+        "Platinum": "background:#CECBF6;color:#3C3489"
     }
 
     rows = ""
@@ -104,18 +102,22 @@ def main():
             acv_remaining = threshold["acv"] - p["totalACV"]
             if deals_remaining <= 0 or acv_remaining <= 0:
                 to_go = "Threshold met — promoting next cycle"
+                status = "met"
             elif deal_pct >= acv_pct:
                 to_go = f"{deals_remaining} deals to go"
+                status = "not-met"
             else:
                 to_go = f"${round(acv_remaining / 1000)}k ACV to go"
+                status = "not-met"
         else:
             to_go = "Top tier"
+            status = "met"
 
         progress_color = "#1D9E75" if leading_pct >= 80 else "#EF9F27" if leading_pct >= 40 else "#E24B4A"
-        badge_style = tier_colors.get(t, tier_colors["Silver"])[0]
+        badge_style = tier_colors.get(t, tier_colors["Silver"])
 
         rows += f"""
-        <tr>
+        <tr class="partner-row" data-status="{status}">
             <td style="padding:12px 16px;border-bottom:1px solid #eee;font-weight:500;font-size:14px;">{p['orgName']}</td>
             <td style="padding:12px 16px;border-bottom:1px solid #eee;">
                 <span style="{badge_style};font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;">{t}</span>
@@ -168,6 +170,11 @@ def main():
             <div style="font-size:26px;font-weight:600;color:#222;">{platinum}</div>
         </div>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+        <button onclick="filterRows('all')" id="btn-all" style="padding:6px 16px;border-radius:20px;border:1px solid #ddd;background:#222;color:#fff;font-size:13px;cursor:pointer;">All</button>
+        <button onclick="filterRows('met')" id="btn-met" style="padding:6px 16px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#222;font-size:13px;cursor:pointer;">Threshold met</button>
+        <button onclick="filterRows('not-met')" id="btn-not-met" style="padding:6px 16px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#222;font-size:13px;cursor:pointer;">Not yet met</button>
+    </div>
     <div style="border:1px solid #eee;border-radius:10px;overflow:hidden;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
@@ -184,6 +191,19 @@ def main():
         </table>
     </div>
 </div>
+<script>
+function filterRows(status) {{
+    document.querySelectorAll('.partner-row').forEach(row => {{
+        row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+    }});
+    document.querySelectorAll('button').forEach(btn => {{
+        btn.style.background = '#fff';
+        btn.style.color = '#222';
+    }});
+    document.getElementById('btn-' + status).style.background = '#222';
+    document.getElementById('btn-' + status).style.color = '#fff';
+}}
+</script>
 </body>
 </html>"""
 
