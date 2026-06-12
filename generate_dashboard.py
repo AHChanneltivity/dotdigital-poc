@@ -50,7 +50,7 @@ def main():
     if deals:
         print(f"First deal fields: {deals[0]}")
     else:
-        all_deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId FROM DealRegistration")
+        all_deals = get_all(session_id, "SELECT * FROM DealRegistration")
         print(f"Total deals without filter: {len(all_deals)}")
         if all_deals:
             print(f"First deal no filter: {all_deals[0]}")
@@ -173,7 +173,7 @@ def main():
         </table>
     </div>
 </div>
-</body>
+</body>a
 </html>"""
 
     with open("index.html", "w") as f:
