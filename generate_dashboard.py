@@ -45,10 +45,16 @@ def main():
     session_id = login()
     current_year = datetime.now().year
 
-    # Get all approved closed deals
     deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId, OwnerOrgId_Name FROM DealRegistration WHERE RegistrationStatus = 'Approved (Closed)'")
+    print(f"Total deals returned with filter: {len(deals)}")
+    if deals:
+        print(f"First deal fields: {deals[0]}")
+    else:
+        all_deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId FROM DealRegistration")
+        print(f"Total deals without filter: {len(all_deals)}")
+        if all_deals:
+            print(f"First deal no filter: {all_deals[0]}")
 
-    # Aggregate by partner
     partners = {}
     for deal in deals:
         close_date = field_val(deal, "CloseDate") or ""
@@ -64,16 +70,13 @@ def main():
 
     partner_list = list(partners.values())
 
-    # Get partner types
     if partner_list:
-        org_ids = [p["orgId"] for p in partner_list]
         for partner in partner_list:
             data = get_all(session_id, f"SELECT Key, PartnerType FROM Organization WHERE Key = '{partner['orgId']}'")
             if data:
                 pt = field_val(data[0], "PartnerType")
                 partner["partnerType"] = PARTNER_TYPE_MAP.get(pt, "Unknown")
 
-    # Build HTML
     snapshot = datetime.now().strftime("%B %Y")
     total = len(partner_list)
     silver = sum(1 for p in partner_list if p["partnerType"] == "Silver")
@@ -81,9 +84,9 @@ def main():
     platinum = sum(1 for p in partner_list if p["partnerType"] == "Platinum")
 
     tier_colors = {
-        "Silver": ("background:#D3D1C7;color:#444441", ),
-        "Gold": ("background:#FAC775;color:#633806", ),
-        "Platinum": ("background:#CECBF6;color:#3C3489", )
+        "Silver": ("background:#D3D1C7;color:#444441",),
+        "Gold": ("background:#FAC775;color:#633806",),
+        "Platinum": ("background:#CECBF6;color:#3C3489",)
     }
 
     rows = ""
