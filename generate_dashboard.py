@@ -102,7 +102,7 @@ def main():
         if threshold["next"]:
             deals_remaining = threshold["deals"] - p["dealCount"]
             acv_remaining = threshold["acv"] - p["totalACV"]
-            if deals_remaining <= 0 and acv_remaining <= 0:
+            if deals_remaining <= 0 or acv_remaining <= 0:
                 to_go = "Threshold met — promoting next cycle"
             elif deal_pct >= acv_pct:
                 to_go = f"{deals_remaining} deals to go"
