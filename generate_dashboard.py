@@ -44,7 +44,7 @@ def main():
     session_id = login()
     current_year = datetime.now().year
 
-    deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId, RegistrationStatus FROM DealRegistration WHERE RegistrationStatus = '3'")
+    deals = get_all(session_id, f"SELECT Key, Amount, CloseDate, OwnerOrgId, RegistrationStatus FROM DealRegistration WHERE RegistrationStatus = '3' AND CloseDate >= '{current_year}-01-01'")
     print(f"Total won deals: {len(deals)}")
 
     orgs = get_all(session_id, "SELECT Key, Name, PartnerType FROM Organization")
