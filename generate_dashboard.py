@@ -1,5 +1,4 @@
 import requests
-import json
 import os
 from datetime import datetime
 
@@ -45,37 +44,43 @@ def main():
     session_id = login()
     current_year = datetime.now().year
 
-    deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId, OwnerOrgId_Name FROM DealRegistration WHERE RegistrationStatus = 'Approved (Closed)'")
-    print(f"Total deals returned with filter: {len(deals)}")
-    if deals:
-        print(f"First deal fields: {deals[0]}")
-    else:
-        all_deals = get_all(session_id, "SELECT * FROM DealRegistration")
-        print(f"Total deals without filter: {len(all_deals)}")
-        if all_deals:
-            print(f"First deal no filter: {all_deals[0]}")
+    # Get all won deals
+    deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId, RegistrationStatus FROM DealRegistration WHERE RegistrationStatus = '3'")
+    print(f"Total won deals: {len(deals)}")
 
+    # Get all orgs in one query
+    orgs = get_all(session_id, "SELECT Key, Name, PartnerType FROM Organization")
+    org_map = {}
+    for org in orgs:
+        key = field_val(org, "Key")
+        org_map[key] = {
+            "name": field_val(org, "Name") or "Unknown",
+            "partnerType": PARTNER_TYPE_MAP.get(field_val(org, "PartnerType") or "", "Unknown")
+        }
+    print(f"Total orgs loaded: {len(org_map)}")
+
+    # Aggregate by partner
     partners = {}
     for deal in deals:
         close_date = field_val(deal, "CloseDate") or ""
         if not close_date.startswith(str(current_year)):
             continue
         org_id = field_val(deal, "OwnerOrgId")
-        org_name = field_val(deal, "OwnerOrgId_Name") or "Unknown"
         amount = float(field_val(deal, "Amount") or 0)
+        org_info = org_map.get(org_id, {"name": "Unknown", "partnerType": "Unknown"})
         if org_id not in partners:
-            partners[org_id] = {"orgId": org_id, "orgName": org_name, "dealCount": 0, "totalACV": 0, "partnerType": "Unknown"}
+            partners[org_id] = {
+                "orgId": org_id,
+                "orgName": org_info["name"],
+                "dealCount": 0,
+                "totalACV": 0,
+                "partnerType": org_info["partnerType"]
+            }
         partners[org_id]["dealCount"] += 1
         partners[org_id]["totalACV"] += amount
 
     partner_list = list(partners.values())
-
-    if partner_list:
-        for partner in partner_list:
-            data = get_all(session_id, f"SELECT Key, PartnerType FROM Organization WHERE Key = '{partner['orgId']}'")
-            if data:
-                pt = field_val(data[0], "PartnerType")
-                partner["partnerType"] = PARTNER_TYPE_MAP.get(pt, "Unknown")
+    print(f"Partners with 2026 deals: {len(partner_list)}")
 
     snapshot = datetime.now().strftime("%B %Y")
     total = len(partner_list)
@@ -173,7 +178,7 @@ def main():
         </table>
     </div>
 </div>
-</body>a
+</body>
 </html>"""
 
     with open("index.html", "w") as f:
