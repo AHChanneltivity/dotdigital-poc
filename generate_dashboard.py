@@ -44,11 +44,9 @@ def main():
     session_id = login()
     current_year = datetime.now().year
 
-    # Get all won deals
     deals = get_all(session_id, "SELECT Key, Amount, CloseDate, OwnerOrgId, RegistrationStatus FROM DealRegistration WHERE RegistrationStatus = '3'")
     print(f"Total won deals: {len(deals)}")
 
-    # Get all orgs in one query
     orgs = get_all(session_id, "SELECT Key, Name, PartnerType FROM Organization")
     org_map = {}
     for org in orgs:
@@ -59,7 +57,6 @@ def main():
         }
     print(f"Total orgs loaded: {len(org_map)}")
 
-    # Aggregate by partner
     partners = {}
     for deal in deals:
         close_date = field_val(deal, "CloseDate") or ""
@@ -80,7 +77,7 @@ def main():
         partners[org_id]["totalACV"] += amount
 
     partner_list = list(partners.values())
-    print(f"Partners with 2026 deals: {len(partner_list)}")
+    print(f"Partners with {current_year} deals: {len(partner_list)}")
 
     snapshot = datetime.now().strftime("%B %Y")
     total = len(partner_list)
@@ -101,10 +98,19 @@ def main():
         deal_pct = min(100, round(p["dealCount"] / threshold["deals"] * 100)) if threshold["deals"] else 100
         acv_pct = min(100, round(p["totalACV"] / threshold["acv"] * 100)) if threshold["acv"] else 100
         leading_pct = max(deal_pct, acv_pct)
+
         if threshold["next"]:
-            to_go = f"{threshold['deals'] - p['dealCount']} deals to go" if deal_pct >= acv_pct else f"${round((threshold['acv'] - p['totalACV']) / 1000)}k ACV to go"
+            deals_remaining = threshold["deals"] - p["dealCount"]
+            acv_remaining = threshold["acv"] - p["totalACV"]
+            if deals_remaining <= 0 and acv_remaining <= 0:
+                to_go = "Threshold met — promoting next cycle"
+            elif deal_pct >= acv_pct:
+                to_go = f"{deals_remaining} deals to go"
+            else:
+                to_go = f"${round(acv_remaining / 1000)}k ACV to go"
         else:
             to_go = "Top tier"
+
         progress_color = "#1D9E75" if leading_pct >= 80 else "#EF9F27" if leading_pct >= 40 else "#E24B4A"
         badge_style = tier_colors.get(t, tier_colors["Silver"])[0]
 
