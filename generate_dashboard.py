@@ -58,9 +58,6 @@ def main():
 
     partners = {}
     for deal in deals:
-        close_date = field_val(deal, "CloseDate") or ""
-        if not close_date.startswith(str(current_year)):
-            continue
         org_id = field_val(deal, "OwnerOrgId")
         amount = float(field_val(deal, "Amount") or 0)
         org_info = org_map.get(org_id, {"name": "Unknown", "partnerType": "Unknown"})
@@ -141,6 +138,53 @@ def main():
             </td>
         </tr>"""
 
+    currency_section = """
+    <h2 style="font-size:18px;font-weight:600;margin:2rem 0 4px;color:#222;">GBP Exchange Rates</h2>
+    <p id="currency-timestamp" style="font-size:13px;color:#999;margin:0 0 1rem;"></p>
+    <div style="border:1px solid #eee;border-radius:10px;overflow:hidden;max-width:500px;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="background:#f7f7f7;">
+                    <th style="padding:12px 16px;text-align:left;font-weight:500;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Currency</th>
+                    <th style="padding:12px 16px;text-align:left;font-weight:500;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Code</th>
+                    <th style="padding:12px 16px;text-align:right;font-weight:500;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">1 GBP =</th>
+                </tr>
+            </thead>
+            <tbody id="rates-body">
+                <tr><td colspan="3" style="padding:24px;text-align:center;color:#999;">Loading rates...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <script>
+    const CURRENCIES = {
+        USD: "US Dollar",
+        EUR: "Euro",
+        AUD: "Australian Dollar",
+        SGD: "Singapore Dollar",
+        JPY: "Japanese Yen",
+        CAD: "Canadian Dollar"
+    };
+    async function loadRates() {
+        try {
+            const r = await fetch("https://api.frankfurter.app/latest?from=GBP&to=USD,EUR,AUD,SGD,JPY,CAD");
+            const data = await r.json();
+            document.getElementById("currency-timestamp").textContent = "Live rates · Updated " + new Date().toLocaleString();
+            document.getElementById("rates-body").innerHTML = Object.entries(data.rates).map(([code, rate]) => `
+                <tr>
+                    <td style="padding:12px 16px;border-bottom:1px solid #eee;color:#222;">${CURRENCIES[code]}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #eee;color:#666;">${code}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #eee;text-align:right;font-weight:500;color:#222;">${rate.toFixed(4)}</td>
+                </tr>
+            `).join("");
+        } catch(e) {
+            document.getElementById("rates-body").innerHTML = "<tr><td colspan='3' style='padding:24px;text-align:center;color:#E24B4A;'>Failed to load rates</td></tr>";
+        }
+    }
+    loadRates();
+    setInterval(loadRates, 60000);
+    </script>
+    """
+
     html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -190,13 +234,14 @@ def main():
             <tbody>{rows}</tbody>
         </table>
     </div>
+    {currency_section}
 </div>
 <script>
 function filterRows(status) {{
     document.querySelectorAll('.partner-row').forEach(row => {{
         row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
     }});
-    document.querySelectorAll('button').forEach(btn => {{
+    document.querySelectorAll('button[id^="btn-"]').forEach(btn => {{
         btn.style.background = '#fff';
         btn.style.color = '#222';
     }});
